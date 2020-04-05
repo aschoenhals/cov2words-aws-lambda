@@ -1,11 +1,20 @@
 const fn = require('./helper_functions')
 
-const sampleAnswers = {
+// sampleAnswer: the value of each key is the actual score of the question. not the userinput!
+const sampleAnswers1 = {
   "personalInfo_P0": 1,
   "personalInfo_P1": 2,
   "personalInfo_P2": 1,
   "contact_CZ": 25,
 }
+
+const sampleAnswers2 = {
+  "personalInfo_P0": 1,
+  "personalInfo_P1": 2,
+  "personalInfo_P2": 1,
+  "contact_CZ": 0,
+}
+
 
 const sampleThresholdMap = {
   "personalInfo": {
@@ -24,10 +33,55 @@ const sampleThresholdMap = {
   }
 }
 
+const fooMap = {
+  contact: {
+    threshold: 0,
+    recoms: {
+      isDanger: "lorem contact",
+      isSafe: "ipsum contact"
+    }
+  },
+  personalInfo: {
+    threshold: 0,
+    recoms: {
+      isDanger: "lorem personal",
+      isSafe: "ipsum personal"
+    }
+  },
+  symptoms: {
+    threshold: 0,
+    recoms: {
+      isDanger: "lorem",
+      isSafe: "ipsum"
+    }
+  },
+  respiratorySymptoms: {
+    threshold: 0,
+    recoms: {
+      isDanger: "lorem",
+      isSafe: "ipsum"
+    }
+  },
+  illnesses: {
+    threshold: 0,
+    recoms: {
+      isDanger: "lorem",
+      isSafe: "ipsum"
+    }
+  },
+  medication: {
+    threshold: 0,
+    recoms: {
+      isDanger: "lorem",
+      isSafe: "ipsum"
+    }
+  }
+}
+
 describe("function generateXMLPayload", () => {
   let answer, expectedAnswer
   beforeEach(() => {
-    answers = sampleAnswers
+    answers = sampleAnswers1
   })
   test("returns expected object", () => {
     expectedAnswer = {
@@ -42,7 +96,22 @@ describe("function generateXMLPayload", () => {
 describe("function answersToRecommendation", () => {
   it("returns expected string", () => {
     expectedAnswer = "Lorem Hell"
-    expect(fn.answersToRecommendation(sampleAnswers, sampleThresholdMap))
+    expect(fn.answersToRecommendation(sampleAnswers1, JSON.stringify(sampleThresholdMap)))
+      .toEqual(expectedAnswer)
+  })
+  it("returns expected string", () => {
+    expectedAnswer = "Lorem yeah"
+    expect(fn.answersToRecommendation(sampleAnswers2, JSON.stringify(sampleThresholdMap)))
+      .toEqual(expectedAnswer)
+  })
+  it("returns expected string", () => {
+    expectedAnswer = "lorem personal lorem contact"
+    expect(fn.answersToRecommendation(sampleAnswers1, JSON.stringify(fooMap)))
+      .toEqual(expectedAnswer)
+  })
+  it("returns expected string", () => {
+    expectedAnswer = "lorem personal ipsum contact"
+    expect(fn.answersToRecommendation(sampleAnswers2, JSON.stringify(fooMap)))
       .toEqual(expectedAnswer)
   })
 })
