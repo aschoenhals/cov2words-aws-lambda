@@ -1,8 +1,6 @@
 var querystring = require('querystring');
 var http = require('http');
-var AWS = require('aws-sdk');
-AWS.config.region = 'eu-central-1';
-
+var fn = require('./evaluate')
 
 exports.handler = function (event, context, callback) {
     var post_data = querystring.stringify(event.body);
@@ -14,7 +12,7 @@ exports.handler = function (event, context, callback) {
     var answers = patientData.Details.ContactData.Attributes;
     var phoneNumber = patientData.Details.ContactData.CustomerEndpoint.Address;
     var serviceNumber = patientData.Details.ContactData.SystemEndpoint.Address;
-    var languageCode = serviceNumber.startsWith("+1") ? "en" : "de";
+    var languageCode = phoneNumber.startsWith("+49") ? "de" : "en";
 
 
     var age = answers.age;
@@ -32,8 +30,14 @@ exports.handler = function (event, context, callback) {
         age = 5;
     }
 
+    var xmlPayload = fn.generateXMLPayload(answers, languageCode);
+   
+    //console.log(answers.scoreMap);
+   //console.log(fn.answersToRecommendation(answers, answers.scoreMap));
+    
+    
     var payload = {};
-    if (languageCode == 'de') {
+    if (languageCode === 'de') { // old
         payload = {
             "answer": "<PATIENT><A>" + age + "</A><B>" + answers.accommodation + "</B><C>" + answers.working_field + "</C><D>" + answers.smoker
                 + "</D><Q>" + answers.contact_confirmed + "</Q><T>" + answers.fever_last_24h + "</T><U>" + answers.fever_last_4d + "</U><W>" + answers.chills
@@ -44,23 +48,15 @@ exports.handler = function (event, context, callback) {
                 + "</B1><B2>" + answers.flu_vaccination + "</B2></PATIENT>",
             "language": languageCode
         }
+        console.log(payload);
     } else {
-        payload = {
-            "answer": "<PATIENT><V0>301</V0><P0>"+answers.personalInfo_P0+"</P0><P2>"+answers.personalInfo_P2+"</P2><P3>"+answers.personalInfo_P3
-            +"</P3><P4>"+answers.personalInfo_P4+"</P4><P5>"+answers.personalInfo_P5+"</P5><P6>"+answers.personalInfo_P6+"</P6><C0>"+answers.contact_C0
-            +"</C0><S0>"+answers.symptoms_S0+"</S0><S1>"+answers.symptoms_S1+"</S1><S3>"+symptoms_S3+"</S3><S4>"+answers.symptoms_S4
-            +"</S4><S5>"+answers.symptoms_S5+"</S5><S6>"+answers.respiratorySymptoms_S6+"</S6><S7>"+answers.respiratorySymptoms_S7+"</S7><S8>"+answers.symptoms_S8
-            +"</S8><S9>"+answers.symptoms_S9+"</S9><SA>"+answers.symptoms_SA+"</SA><SB>"+answers.respiratorySymptoms_SB+"</SB><SC>"+answers.symptoms_SC
-            +"</SC><SZ>20200101</SZ><D0>"+answers.illnesses_D0+"</D0><D1>"+answers.illnesses_D1+"</D1><D2>"+answers.illnesses_D2
-            +"</D2><D3>"+answers.illnesses_D3+"</D3><M0>"+answers.medication_M0+"</M0><M1>"+answers.medication_M1+"</M1><M2>"+answers.medication_M2+"</M2></PATIENT>",
-            "language": languageCode
-        }
+        payload = xmlPayload;
     }
 
-    console.log(JSON.stringify(answers));
+    //console.log(JSON.stringify(answers));
 
     var post_options = {
-        host: 'cov2words.hepp.io', // TODO
+        host: 'api.cov2words.com', // TODO
         path: '/api/pair/create', // TODO
         method: 'POST',
         headers: {
@@ -70,22 +66,31 @@ exports.handler = function (event, context, callback) {
         }
     };
 
-    console.log('post_options' + JSON.stringify(post_options));
+    //console.log('post_options' + JSON.stringify(post_options));
+    
+    var recommendationTerm ="";
+    if(phoneNumber.startsWith("+1")) // usa
+        recommendationTerm = "Please contact your local health department or call a local public hotline to learn how to corona virus testing is organized in your area."
+    else if(phoneNumber.startsWith("+49")) // german
+        recommendationTerm = answersToRecommendation(answers);
+    else if(phoneNumber.startsWith("+45")) { // denmark
+        recommendationTerm = "8-16 på hverdage ring til egen læge. 16-8 om morgenen på hverdage og i hele døgnet i weekender og helligdage, ring til lægevagten 70 11 31 31.";
+    }
 
 
     var post_req = http.request(post_options, function (res) {
         res.setEncoding('utf8');
         res.on('data', function (chunk) {
-            console.log('Response: ' + chunk);
+            //console.log('Response: ' + chunk);
 
             var responseObject = JSON.parse(chunk);
-            console.log(responseObject);
+            //console.log(responseObject);
             var data = responseObject.data;
             var words = data.words;
-            console.log(words);
+            //console.log(words);
             var word1 = serviceNumber.startsWith("+1") ? JSON.parse(JSON.stringify(words.filter(function (element) { return element.order == 0; })))[0].word : JSON.parse(JSON.stringify(words.filter(function (element) { return element.order == 0; })))[0].word;
             var word2 = serviceNumber.startsWith("+1") ? JSON.parse(JSON.stringify(words.filter(function (element) { return element.order == 1; })))[0].word : JSON.parse(JSON.stringify(words.filter(function (element) { return element.order == 1; })))[0].word;
-            var recommendation = serviceNumber.startsWith("+1") ? "Please contact your local health department or call a local public hotline to learn how to corona virus testing is organized in your area." : answersToRecommendation(answers);
+            var recommendation = recommendationTerm
             var resultMap = {
                 recommendation: recommendation,
                 word1: word1,
