@@ -44,8 +44,7 @@ exports.handler = function (event, context, callback) {
                 + "</W><X>" + answers.weak + "</X><Y>" + answers.limb_pain + "</Y><Z>" + answers.cough + "</Z><A0>" + answers.snuff
                 + "</A0><A1>" + answers.diarrhoea + "</A1><A2>" + answers.sore_throat + "</A2><A3>" + answers.head_ache + "</A3><B7>" + answers.breathlessness
                 + "</B7><B9>00000000</B9><A5>" + answers.pneumonia + "</A5><A6>" + answers.diabetes + "</A6><A7>" + answers.heart_disease
-                + "</A7><A8>" + answers.adipositas + "</A8><A9>" + answers.pregnant + "</A9><B0>" + answers.cortisone + "</B0><B1>" + answers.cancer
-                + "</B1><B2>" + answers.flu_vaccination + "</B2></PATIENT>",
+                + "</A7><A8>" + answers.adipositas + "</A8><A9>" + answers.pregnant + "</A9></PATIENT>",
             "language": languageCode
         }
         console.log(payload);
